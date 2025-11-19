@@ -1,28 +1,22 @@
 #!/bin/sh
 
-# 函数：测试Git仓库延迟并选择最佳的
 select_best_remote() {
-    # 使用字符串而不是数组
     REMOTE1="github.com"
     REMOTE2="gitee.com"
-
-    # 简化的延迟测试
-    if ping -c 1 -W 3 "$REMOTE1" >/dev/null 2>&1; then
-        echo "origin"  # 假设 origin 对应 github
-    elif ping -c 1 -W 3 "$REMOTE2" >/dev/null 2>&1; then
-        echo "gitee"  # 假设 mirror 对应 gitee
+    LATENCY1=$(ping -c 2 "$REMOTE1" 2>/dev/null | tail -1 | awk '{print $4}' | cut -d '/' -f 2 | cut -d '.' -f 1)
+    LATENCY2=$(ping -c 2 "$REMOTE2" 2>/dev/null | tail -1 | awk '{print $4}' | cut -d '/' -f 2 | cut -d '.' -f 1)
+    if [ -z "$LATENCY1" ]; then LATENCY1=9999; fi
+    if [ -z "$LATENCY2" ]; then LATENCY2=9999; fi
+    if [ "$LATENCY1" -lt "$LATENCY2" ]; then
+        echo "origin"
     else
-        echo "origin"  # 默认回退
+        echo "gitee"
     fi
 }
 
-# 在你的脚本中使用
 git_pull_best() {
     best_remote=$(select_best_remote)
-    echo "Using remote: $best_remote"
-
-    # 执行 git pull
-    git pull "$best_remote" main  # 根据实际情况调整分支名
+    git pull "$best_remote" main
 }
 git_pull_best
 cp /auto_dtu/model_config/model-config.toml /auto_dtu/config/.
